@@ -1,0 +1,45 @@
+This is a python script for blender that creates the layout for a shaded relief map and conncets all the nodes properly. There is an example image and tutorial that go with this script that can be found on my website.
+import bpy
+
+# Get the default scene
+scene = bpy.context.scene
+
+# Add a plane to the scene
+bpy.ops.mesh.primitive_plane_add(location=(0, 0, 0))
+plane = bpy.context.active_object
+
+# Add the first image texture
+image_texture_1 = bpy.data.textures.new(name="Image Texture 1", type='IMAGE')
+image_texture_1.image = bpy.data.images.load("path/to/image1.jpg")
+
+# Add the principal BDSF
+principal_bdsf = bpy.data.materials.new(name="Principal BDSF")
+principal_bdsf.use_nodes = True
+principal_bdsf.node_tree.nodes.clear()
+
+# Connect the color output of the first image texture to the base color of the principal BDSF
+color_node = principal_bdsf.node_tree.nodes.new(type='ShaderNodeTexImage')
+color_node.image = image_texture_1.image
+principal_bdsf_bsdf = principal_bdsf.node_tree.nodes.new(type='ShaderNodeBsdfPrincipled')
+principal_bdsf.node_tree.links.new(color_node.outputs[0], principal_bdsf_bsdf.inputs[0])
+
+# Add the material output
+material_output = principal_bdsf.node_tree.nodes.new(type='ShaderNodeOutputMaterial')
+principal_bdsf.node_tree.links.new(principal_bdsf_bsdf.outputs[0], material_output.inputs[0])
+
+# Add the displacement modifier
+displacement_modifier = plane.modifiers.new(name="Displacement Modifier", type='DISPLACE')
+
+# Connect the material output displacement to the displacement modifier
+displacement_modifier.mid_level = 0.0
+displacement_modifier.strength = 1.0
+displacement_modifier.texture = bpy.data.textures.new(name="Displacement Texture", type='IMAGE')
+
+# Add the second image texture
+image_texture_2 = bpy.data.textures.new(name="Image Texture 2", type='IMAGE')
+image_texture_2.image = bpy.data.images.load("path/to/image2.jpg")
+displacement_modifier.texture = image_texture_2
+
+# Connect the displacement modifier normal node to the color node of the second image texture
+displacement_modifier.texture_coords = 'UV'
+displacement_modifier.uv_layer = 'UVMap'
